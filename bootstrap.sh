@@ -9,22 +9,22 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${BLUE}🚀 DevBox Bootstrap - User & Git Setup${NC}"
+echo -e "${BLUE}DevBox Bootstrap - User & Git Setup${NC}"
 echo
 
 # Check if running as root
 if [ "$EUID" -eq 0 ]; then
-  echo -e "${RED}❌ Error: Do not run as root. Run as your regular user.${NC}"
+  echo -e "${RED}[ERROR] Do not run as root. Run as your regular user.${NC}"
   exit 1
 fi
 
 # Verify we can use sudo without password
 if ! sudo -n true 2>/dev/null; then
-  echo -e "${YELLOW}ℹ️  You may be prompted for your password (for sudo)${NC}"
+  echo -e "${YELLOW}[INFO] You may be prompted for your password (for sudo)${NC}"
 fi
 
 # Interactive prompts (not passed via args to avoid shell history exposure)
-echo -e "${YELLOW}📋 Configuration:${NC}"
+echo -e "${YELLOW}[CONFIG]${NC}"
 
 read -p "  Username? (default: devbox): " DEVBOX_USERNAME
 DEVBOX_USERNAME=${DEVBOX_USERNAME:-devbox}
@@ -46,27 +46,27 @@ echo "  Selected: $DEVBOX_USERNAME / $GITHUB_AUTH_METHOD"
 echo
 
 # Step 1: Create user
-echo -e "${YELLOW}👤 Creating user '$DEVBOX_USERNAME'...${NC}"
+echo -e "${YELLOW}[USER]${NC} Creating user '$DEVBOX_USERNAME'..."
 
 if id "$DEVBOX_USERNAME" &>/dev/null; then
-  echo -e "${GREEN}✓ User already exists${NC}"
+  echo -e "${GREEN}[OK]${NC} User already exists"
 else
   sudo useradd -m -s /bin/bash "$DEVBOX_USERNAME" || {
-    echo -e "${RED}❌ Failed to create user${NC}"
+    echo -e "${RED}[ERROR]${NC} Failed to create user"
     exit 1
   }
-  echo -e "${GREEN}✓ User created${NC}"
+  echo -e "${GREEN}[OK]${NC} User created"
 fi
 
 # Step 2: Setup Git credentials
 echo
-echo -e "${YELLOW}🔑 Setting up Git credentials...${NC}"
+echo -e "${YELLOW}[GIT]${NC} Setting up Git credentials..."
 
 if [ "$GITHUB_AUTH_METHOD" == "ssh" ]; then
   # SSH key method - generate new key or use existing
   SSH_DIR="/home/$DEVBOX_USERNAME/.ssh"
 
-  echo -e "${YELLOW}🔑 SSH Key Setup${NC}"
+  echo "[SSH] SSH Key Setup"
 
   # Create .ssh directory
   sudo mkdir -p "$SSH_DIR"
@@ -76,9 +76,9 @@ if [ "$GITHUB_AUTH_METHOD" == "ssh" ]; then
 
   # Check if key already exists
   if sudo test -f "$SSH_KEY_PATH"; then
-    echo -e "${GREEN}✓ SSH key already exists${NC}"
+    echo -e "${GREEN}[OK]${NC} SSH key already exists"
   else
-    echo -e "${YELLOW}Generating new ED25519 SSH key...${NC}"
+    echo "[SSH] Generating new ED25519 SSH key..."
 
     # Generate key as root, then chown
     sudo ssh-keygen -t ed25519 -f "$SSH_KEY_PATH" -N "" -C "devbox@github" > /dev/null 2>&1
@@ -86,14 +86,14 @@ if [ "$GITHUB_AUTH_METHOD" == "ssh" ]; then
     sudo chmod 644 "$SSH_KEY_PATH.pub"
     sudo chown "$DEVBOX_USERNAME:$DEVBOX_USERNAME" "$SSH_KEY_PATH" "$SSH_KEY_PATH.pub"
 
-    echo -e "${GREEN}✓ SSH key generated${NC}"
+    echo -e "${GREEN}[OK]${NC} SSH key generated"
   fi
 
   # Display public key for GitHub and copy to clipboard
   PUBKEY=$(sudo cat "$SSH_KEY_PATH.pub")
 
   echo
-  echo -e "${YELLOW}📋 SSH Public Key (copied to clipboard):${NC}"
+  echo -e "${YELLOW}[KEY]${NC} SSH Public Key (copied to clipboard):"
   echo
   echo "$PUBKEY" | sed 's/^/  /'
   echo
@@ -102,21 +102,21 @@ if [ "$GITHUB_AUTH_METHOD" == "ssh" ]; then
   if command -v clip.exe &> /dev/null; then
     # WSL: use Windows clipboard
     echo "$PUBKEY" | clip.exe
-    echo -e "${GREEN}✓ Key copied to Windows clipboard${NC}"
+    echo -e "${GREEN}[OK]${NC} Key copied to Windows clipboard"
   elif command -v xclip &> /dev/null; then
     # Linux: use xclip
     echo "$PUBKEY" | xclip -selection clipboard
-    echo -e "${GREEN}✓ Key copied to clipboard${NC}"
+    echo -e "${GREEN}[OK]${NC} Key copied to clipboard"
   elif command -v wl-copy &> /dev/null; then
     # Wayland: use wl-copy
     echo "$PUBKEY" | wl-copy
-    echo -e "${GREEN}✓ Key copied to clipboard${NC}"
+    echo -e "${GREEN}[OK]${NC} Key copied to clipboard"
   else
-    echo -e "${YELLOW}ℹ️  Clipboard tools not available - key displayed above${NC}"
+    echo -e "${YELLOW}[INFO]${NC} Clipboard tools not available - key displayed above"
   fi
 
   echo
-  echo -e "${YELLOW}📝 Next:${NC}"
+  echo -e "${YELLOW}[NEXT]${NC}"
   echo "  1. Go to: https://github.com/settings/keys"
   echo "  2. Click 'New SSH key'"
   echo "  3. Paste the key (it's in your clipboard)"
@@ -140,7 +140,7 @@ EOF
 
 elif [ "$GITHUB_AUTH_METHOD" == "token" ]; then
   # GitHub token method - prompt for token interactively
-  echo -e "${YELLOW}🔑 GitHub Token Setup${NC}"
+  echo "[TOKEN] GitHub Token Setup"
   echo "  Get your token at: https://github.com/settings/tokens"
   echo "  Scopes needed: repo, read:user"
   echo
@@ -149,7 +149,7 @@ elif [ "$GITHUB_AUTH_METHOD" == "token" ]; then
   echo
 
   if [ -z "$GITHUB_TOKEN" ]; then
-    echo -e "${RED}❌ Token is required${NC}"
+    echo -e "${RED}[ERROR]${NC} Token is required"
     exit 1
   fi
 
@@ -167,13 +167,13 @@ EOF
 
   # Configure git to use stored credentials
   sudo -u "$DEVBOX_USERNAME" git config --global credential.helper store
-  echo -e "${GREEN}✓ GitHub token stored${NC}"
+  echo -e "${GREEN}[OK]${NC} GitHub token stored"
 fi
 
 
 # Step 3: Test git access
 echo
-echo -e "${YELLOW}🧪 Testing Git access...${NC}"
+echo -e "${YELLOW}[TEST]${NC} Testing Git access..."
 
 if [ "$GITHUB_AUTH_METHOD" == "ssh" ]; then
   # Add GitHub to known hosts
@@ -186,9 +186,9 @@ if [ "$GITHUB_AUTH_METHOD" == "ssh" ]; then
     SSH_OUTPUT=$(sudo -u "$DEVBOX_USERNAME" timeout 10 ssh -T git@github.com 2>&1 || true)
 
     if echo "$SSH_OUTPUT" | grep -qE "Hi [a-zA-Z0-9_-]+|successfully authenticated"; then
-      echo -e "${GREEN}✓${NC}"
+      echo -e "${GREEN}OK${NC}"
       SSH_TEST_PASSED=1
-      echo -e "${GREEN}✓ GitHub SSH access verified${NC}"
+      echo -e "${GREEN}[OK]${NC} GitHub SSH access verified"
       echo "  User: $(echo "$SSH_OUTPUT" | grep -oE 'Hi [a-zA-Z0-9_-]+' | cut -d' ' -f2)"
       break
     else
@@ -200,7 +200,7 @@ if [ "$GITHUB_AUTH_METHOD" == "ssh" ]; then
   done
 
   if [ $SSH_TEST_PASSED -eq 0 ]; then
-    echo -e "${YELLOW}⚠️  Could not verify SSH access${NC}"
+    echo -e "${YELLOW}[WARN]${NC} Could not verify SSH access"
     echo "  This can happen if:"
     echo "  - Key wasn't added to GitHub yet"
     echo "  - GitHub is still propagating the key (~30 seconds)"
@@ -216,9 +216,9 @@ else
   # Token test - attempt a git ls-remote to verify it works
   echo "  Testing GitHub token..."
   if sudo -u "$DEVBOX_USERNAME" timeout 10 git ls-remote https://github.com/tazben-1/iplak-devbox.git > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ GitHub token access verified${NC}"
+    echo -e "${GREEN}[OK]${NC} GitHub token access verified"
   else
-    echo -e "${YELLOW}⚠️  Could not verify token access${NC}"
+    echo -e "${YELLOW}[WARN]${NC} Could not verify token access"
     echo "  Verify token scopes: https://github.com/settings/tokens"
     echo "  Required: 'repo' and 'read:user'"
     echo "  Token will be tested during 'git clone' in next step"
@@ -227,7 +227,7 @@ fi
 
 # Step 4: Setup shell profile
 echo
-echo -e "${YELLOW}⚙️  Setting up shell...${NC}"
+echo -e "${YELLOW}[SHELL]${NC} Setting up shell..."
 
 BASHRC="/home/$DEVBOX_USERNAME/.bashrc"
 if ! sudo -u "$DEVBOX_USERNAME" grep -q "DEVBOX_USER=" "$BASHRC" 2>/dev/null; then
@@ -236,14 +236,14 @@ if ! sudo -u "$DEVBOX_USERNAME" grep -q "DEVBOX_USER=" "$BASHRC" 2>/dev/null; th
 # DevBox environment
 export DEVBOX_USER=1
 EOF
-  echo -e "${GREEN}✓ Shell environment configured${NC}"
+  echo -e "${GREEN}[OK]${NC} Shell environment configured"
 fi
 
 # Step 5: Summary
 echo
-echo -e "${GREEN}✅ Bootstrap complete!${NC}"
+echo -e "${GREEN}[DONE]${NC} Bootstrap complete!"
 echo
-echo -e "${BLUE}Next steps:${NC}"
+echo -e "${BLUE}[NEXT]${NC} Next steps:"
 echo "  1. Switch to the new user:"
 echo "     su - $DEVBOX_USERNAME"
 echo
